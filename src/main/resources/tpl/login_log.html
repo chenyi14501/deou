@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <base href="${base}/">
+    <meta charset="UTF-8" />
+    <title>amis demo</title>
+    <meta content="text/html; charset=utf-8" http-equiv="Content-Type" />
+    <meta content="width=device-width, initial-scale=1, maximum-scale=1" name="viewport"/>
+    <meta content="IE=Edge" http-equiv="X-UA-Compatible" />
+    <link href="amis/sdk.css" rel="stylesheet" />
+    <!-- 从 1.1.0 开始 sdk.css 将不支持 IE 11，如果要支持 IE11 请引用这个 css，并把前面那个删了 -->
+    <!--<link rel="stylesheet" href="amis/sdk-ie11.css" /> -->
+    <!-- 不过 amis 开发团队几乎没测试过 IE 11 下的效果，所以可能有细节功能用不了，如果发现请报 issue -->
+
+    <!--    <link href="amis/cxd.css" rel="stylesheet" />-->
+    <!--    <link href="amis/dark.css" rel="stylesheet" />-->
+        <link href="amis/antd.css" rel="stylesheet" />
+
+    <style>
+        html, body, .app-wrapper {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+    </style>
+</head>
+<body>
+<div class="app-wrapper" id="root"></div>
+<script src="amis/sdk.js"></script>
+<script type="text/javascript">
+    (function () {
+
+        let amis = amisRequire('amis/embed');
+
+        // 通过替换下面这个配置来生成不同页面
+        let amisJSON = {
+            "type": "page",
+            "title": "登录日志",
+            "body": [
+                {
+                    "type": "crud",
+                    "api":{
+                        "url": "http://127.0.0.1:8080/erupt-api/data/table/EruptLoginLog", //@wjw_note: @Erupt注解的实体类的URL路径(就是浏览器输入框里#号后面的路径)
+                        "method": 'post',
+                        "dataType": "json",
+                        "headers": {
+                            "token": "kbmJVtbbLBmzKlB5",
+                            "erupt": 'EruptLoginLog'
+                        },
+                        "requestAdaptor": function(api) {
+                                let jsCondition = [];
+
+                                Object.keys(api.data).forEach(function(key) {
+                                    if(key != "page" && key != "perPage" && api.data[key] !="") {
+                                        jsCondition.push({
+                                            "key": key,
+                                            "value": api.data[key]
+                                        });
+                                    }
+                                });
+
+                                return { //一定要将调整后的 api 对象 return 出去
+                                    ...api,
+                                    "data": {
+                                        "condition": jsCondition,
+                                        "pageIndex": api.data.page, //@wjw_note: 页码的参数
+                                        "pageSize": api.data.perPage //@wjw_note: 每页数据量的参数
+                                    }
+                                };
+                        },
+                        "adaptor": function(payload, response) { //接收适配器, payload: 当前请求的响应(即response.data),response：当前请求的原始响应
+                            //alert(JSON.stringify(response));
+                            return { //一定要将调整后的 payload 对象 return 出去
+                                ...payload,
+                                //@wjw_note: 将原始数据解析成 CRUD组件所规定的数据
+                                "status": response.status == 200 ? 0 : response.status, //解析接口状态
+                                "msg": response.statusText, //解析提示文本
+                                "data": {
+                                    "total": payload.total,
+                                    "items": payload.list
+                                } //解析数据列表
+                            };
+                        }
+                    },
+                    "autoGenerateFilter": true,
+                    "syncLocation": false,
+                    "filter": {
+                        "title": "条件搜索",
+                        "body": [
+                            {
+                                "type": "input-text",
+                                "name": "eruptUser_name",
+                                "placeholder": "登录名称",
+                                "label":"登录名称"
+                            }
+                        ]
+                    },
+                    "columns": [
+                        {
+                            "name": "eruptUser_name",
+                            "label": "登录名称",
+                            "searchable":  true
+                        },
+                        {
+                            "name": "loginTime",
+                            "label": "时间",
+                            "searchable": true
+                        },
+                        {
+                            "type": "operation",
+                            "label": "操作",
+                            "buttons": [
+                            ]
+                        }
+                    ]
+
+                }
+            ]
+        };
+        let amisScoped = amis.embed('#root', amisJSON);
+// amisScoped.updateProps({
+//   theme: 'antd'
+// });
+    })();
+</script>
+</body>
+</html>
